@@ -16,10 +16,13 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public static bool inDisplayMode = false;
         public static TextMeshPro tmpObj;
         public static GameObject textHolder;
-        
-        public static void Initialize() 
+        public static bool isInitialized = false;
+        public static DisplayPath quicksavePath;
+
+        public static void Initialize()
         {
             currentPath = new DisplayPath();
+            quicksavePath = null;
             displayedPath = null;
             inDisplayMode = false;
             //priceText = new TextMeshPro();
@@ -36,7 +39,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             tmpObj.fontSize = 4;
             tmpObj.fontSizeMin = 4;
             tmpObj.fontSizeMax = 4;
-            
+
             tmpObj.color = Color.black;
             GameObject panel = GameObject.Find("PotionCraftPanel");
             if (panel is not null)
@@ -47,6 +50,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             {
                 Debug.Log("[Recipe Map Playback] You really messed up with the positioning here...");
             }
+            isInitialized = true;
         }
 
         public static void ResetCurrentPath()
@@ -56,22 +60,46 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
 
         public static void UpdateCurrentPath()
         {
-            currentPath.usedComponents = Managers.Potion.usedComponents;
-            currentPath.CalculatePrice();
-            currentPath.CalculateStress();
+            if (isInitialized && currentPath is not null)
+            {
 
-            
-            textHolder.SetActive(true);
-            
-            
-            //priceText.rectTransform.rect = new Rect(new Vector2(0f, 0f), new Vector2(100f, 100f));
-            tmpObj.text = currentPath.GetPrice().ToString()+" / "+ currentPath.GetStress().ToString(); ;
-        }
+                currentPath.usedComponents = Managers.Potion.usedComponents;
+                currentPath.CalculatePrice();
+                currentPath.CalculateStress();
 
-        public static void TryToAddPoint(Vector2 pt, string state)
-        {
-            ControlPoint point = new ControlPoint(pt, state);
-            currentPath.TryToAdd(point);
+                if (textHolder is not null && textHolder.transform is not null)
+                {
+                    GameObject panel = Managers.Potion.potionCraftPanel.gameObject;
+                    //GameObject panel = GameObject.Find("PotionCraftPanel");
+                    if (panel is not null && panel.transform is not null)
+                    {
+                        textHolder.transform.SetParent(panel.transform);
+                        textHolder.SetActive(true);
+                    }
+                }
+
+                Vector3 pos = Managers.RecipeMap.recipeMapObject.indicatorContainer.localPosition;
+                Vector2 point = new Vector2(pos.x, pos.y);
+                int numMarks = Managers.Potion.recipeMarks.GetMarksList().Count;
+                SerializedRecipeMark mark = Managers.Potion.recipeMarks.GetMarksList()[numMarks - 1];
+
+                IndicatorMapItem imi = Managers.RecipeMap.indicator;
+                float health = 1.0f;
+                float rotation = 0.0f;
+                float teleportStatus = 0.0f;
+                if (imi is not null) {
+                    health = ReflectionHelper.GetPrivateField<float>(imi, "health");
+                    teleportStatus = imi.previousTeleportationStatus;
+                }
+                RecipeMapManager.IndicatorRotationSubManager irsm = Managers.RecipeMap.indicatorRotation;
+                if (irsm is not null) {
+                    rotation = irsm.Value;
+                }
+                currentPath.TryToAdd(point, mark, numMarks, health, rotation, teleportStatus);
+
+                //priceText.rectTransform.rect = new Rect(new Vector2(0f, 0f), new Vector2(100f, 100f));
+                tmpObj.text = currentPath.GetPrice().ToString() + " / " + currentPath.GetStress().ToString() + " / " + health;
+            }
         }
 
         public static void SetInDisplayMode(bool b)
@@ -89,29 +117,46 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         }
 
         // Called when saving a recipe
-        public static void SavePath()
+        public static void SavePath(string name)
         {
-            currentPath.Save();
+            currentPath.Save(name);
             displayedPath = currentPath;
         }
 
+        /*
         public static bool LoadPath(string name)
         {
             // Don't delete current path, just display
             displayedPath = DisplayPath.Load(name);
             return (displayedPath.GetLength() > 0);
         }
+        */
+
+        public static void Quicksave()
+        {
+            quicksavePath = currentPath.Clone();
+            Debug.Log("[Recipe Map Playback] " + currentPath.GetLength() + " points saved.");
+        }
+
+        public static void Quickload()
+        {
+            if (quicksavePath != null)
+            {
+                currentPath = quicksavePath;
+                Debug.Log("[Recipe Map Playback] " + currentPath.GetLength() + " points loaded.");
+            }
+        }
 
         public static bool Rename(string oldname, string newname)
         {
             try
             {
-                if (File.Exists(oldname + ".dat")) {
-                    if (File.Exists(newname + ".dat"))
+                if (File.Exists(oldname + ".json")) {
+                    if (File.Exists(newname + ".json"))
                     {
-                        File.Delete(newname + ".dat");
+                        File.Delete(newname + ".json");
                     }
-                    File.Move(oldname + ".dat", newname + ".dat");
+                    File.Move(oldname + ".json", newname + ".json");
                     return true;
                 }
                 else

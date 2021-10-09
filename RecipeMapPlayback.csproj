@@ -16,6 +16,9 @@
     <Reference Include="BepInEx" CopyToPublishDirectory="Never">
       <HintPath>.\externals\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>externals\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>externals\Unity.TextMeshPro.dll</HintPath>
     </Reference>

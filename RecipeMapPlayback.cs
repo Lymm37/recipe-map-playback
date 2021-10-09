@@ -33,22 +33,82 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                 //Debug.Log("[Recipe Map Playback] Potion manager updated");
                 // Should instead only call when PotionManager.usedComponents is updated,
                 DisplayPathManager.UpdateCurrentPath();
-                Debug.Log($"[Recipe Map Playback] Current price is {DisplayPathManager.currentPath.GetPrice()} and current stress is {DisplayPathManager.currentPath.GetStress()}");
+                //Debug.Log($"[Recipe Map Playback] Current price is {DisplayPathManager.currentPath.GetPrice()} and current stress is {DisplayPathManager.currentPath.GetStress()}");
+            }
+        }
+
+        [HarmonyPatch(typeof(PotionManager))]
+        [HarmonyPatch("ResetPotion")]
+        class ResetPotionPatch
+        {
+            static void Prefix(PotionManager __instance)
+            {
+                // Apparently updates like every frame
+                //Debug.Log("[Recipe Map Playback] Potion manager updated");
+                // Should instead only call when PotionManager.usedComponents is updated,
+                DisplayPathManager.ResetCurrentPath();
+                Debug.Log($"[Recipe Map Playback] Resetting current path");
+            }
+        }
+
+        [HarmonyPatch(typeof(PotionCraftPanel.SaveRecipeButton))]
+        [HarmonyPatch("OnButtonReleasedPointerInside")]
+        class SaveRecipePatch
+        {
+            static void Prefix(PotionManager __instance)
+            {
+                // Apparently updates like every frame
+                //Debug.Log("[Recipe Map Playback] Potion manager updated");
+                // Should instead only call when PotionManager.usedComponents is updated,
+                string name = Managers.Potion.potionCraftPanel.GetCurrentPotion().name; // Kind of a placeholder
+                Debug.Log($"[Recipe Map Playback] Saving path...");
+                DisplayPathManager.SavePath(name);
+            }
+        }
+
+        // Quicksave and quickload patches
+
+        [HarmonyPatch(typeof(SaveLoadManager))]
+        [HarmonyPatch("SaveToSlot")]
+        class QuicksavePatch
+        {
+            static void Postfix(ref SaveLoadSystem.SaveSlotIndex slot)
+            {
+                if (slot == SaveLoadSystem.SaveSlotIndex.Quicksave)
+                {
+                    Debug.Log($"[Recipe Map Playback] Quicksaving...");
+                    DisplayPathManager.Quicksave();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SaveLoadManager))]
+        [HarmonyPatch("LoadFromSlot")]
+        class QuickloadPatch
+        {
+            static void Postfix(ref SaveLoadSystem.SaveSlotIndex slot)
+            {
+                if (slot == SaveLoadSystem.SaveSlotIndex.Quicksave)
+                {
+                    Debug.Log($"[Recipe Map Playback] Quickloading...");
+                    DisplayPathManager.Quickload();
+                }
             }
         }
 
         /*
-        // Initialization: Happens when other managers are initialized
-        [HarmonyPatch(typeof(Managers))]
-        [HarmonyPatch("TryToInit")]
-        class InitializationPatch
+        [HarmonyPatch(typeof(IndicatorMapItem))]
+        [HarmonyPatch("UpdateHealth")]
+        class UpdateHealthPatch
         {
-            static void Postfix()
+            static void Postfix(IndicatorMapItem __instance)
             {
-                DisplayPathManager.initialize();
+                ReflectionHelper.GetInternalField<float>(__instance, "health");
             }
         }
+        */
 
+        /*
         // Resetting: Happens when current potion is finished
         [HarmonyPatch(typeof())]
         [HarmonyPatch("")]
