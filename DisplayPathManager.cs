@@ -12,7 +12,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
     static class DisplayPathManager
     {
         public static DisplayPath currentPath;
-        public static DisplayPath displayedPath;
+        public static DisplayPath displayedPath; // Not used yet, but was planned for if the recipes would be displayed in-game
         public static bool inDisplayMode = false;
         public static TextMeshPro tmpObj;
         public static GameObject textHolder;
@@ -58,15 +58,61 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             currentPath = new DisplayPath();
         }
 
+        public static void SaveFailedRecipe()
+        {
+            SavePath("failed_potion", 1);
+
+        }
+
         public static void UpdateCurrentPath()
         {
             if (isInitialized && currentPath is not null)
             {
+                Vector3 pos = Managers.RecipeMap.recipeMapObject.indicatorContainer.localPosition;
+                Vector2 point = new Vector2(pos.x, pos.y);
+                int numMarks = Managers.Potion.recipeMarks.GetMarksList().Count;
+                SerializedRecipeMark mark = Managers.Potion.recipeMarks.GetMarksList()[numMarks - 1];
+
+                float health = 1.0f;
+                float rotation = 0.0f;
+                float teleportStatus = 0.0f;
+                float whirlpoolStatus = 0.0f;
+
+                IndicatorMapItem imi = Managers.RecipeMap.indicator;
+                if (imi is not null) {
+                    health = ReflectionHelper.GetPrivateField<float>(imi, "health");
+                    teleportStatus = imi.previousTeleportationStatus;
+                }
+                RecipeMapManager.IndicatorRotationSubManager irsm = Managers.RecipeMap.indicatorRotation;
+                if (irsm is not null) {
+                    rotation = irsm.Value;
+                }
+                ObjectBased.RecipeMap.RecipeMapItem.VortexMapItem.VortexMapItem vortex = Managers.RecipeMap.currentVortexMapItem;
+                Coals.BellowsCoals coals = Managers.Ingredient.coals;
+                if (vortex is not null && coals is not null)
+                {
+                    whirlpoolStatus = coals.Heat;
+                }
+
+                float saltMovement = Managers.RecipeMap.moveToNearestEffectBySalt;
+
+                currentPath.TryToAdd(point, mark, numMarks, health, rotation, teleportStatus, whirlpoolStatus, saltMovement);
+                PotionEffect[] potionEffects = Managers.Potion.collectedPotionEffects;
+                if (potionEffects is not null)
+                {
+                    currentPath.effects = new List<string>();
+                    foreach (PotionEffect pe in potionEffects)
+                    {
+                        if (pe is not null)
+                        {
+                            currentPath.effects.Add(pe.name);
+                        }
+                    }
+                }
 
                 currentPath.usedComponents = Managers.Potion.usedComponents;
                 currentPath.CalculatePrice();
                 currentPath.CalculateStress();
-
                 if (textHolder is not null && textHolder.transform is not null)
                 {
                     GameObject panel = Managers.Potion.potionCraftPanel.gameObject;
@@ -77,28 +123,9 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                         textHolder.SetActive(true);
                     }
                 }
-
-                Vector3 pos = Managers.RecipeMap.recipeMapObject.indicatorContainer.localPosition;
-                Vector2 point = new Vector2(pos.x, pos.y);
-                int numMarks = Managers.Potion.recipeMarks.GetMarksList().Count;
-                SerializedRecipeMark mark = Managers.Potion.recipeMarks.GetMarksList()[numMarks - 1];
-
-                IndicatorMapItem imi = Managers.RecipeMap.indicator;
-                float health = 1.0f;
-                float rotation = 0.0f;
-                float teleportStatus = 0.0f;
-                if (imi is not null) {
-                    health = ReflectionHelper.GetPrivateField<float>(imi, "health");
-                    teleportStatus = imi.previousTeleportationStatus;
-                }
-                RecipeMapManager.IndicatorRotationSubManager irsm = Managers.RecipeMap.indicatorRotation;
-                if (irsm is not null) {
-                    rotation = irsm.Value;
-                }
-                currentPath.TryToAdd(point, mark, numMarks, health, rotation, teleportStatus);
-
                 //priceText.rectTransform.rect = new Rect(new Vector2(0f, 0f), new Vector2(100f, 100f));
                 tmpObj.text = currentPath.GetPrice().ToString() + " / " + currentPath.GetStress().ToString() + " / " + health;
+
             }
         }
 
@@ -117,9 +144,9 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         }
 
         // Called when saving a recipe
-        public static void SavePath(string name)
+        public static void SavePath(string name, int failed=0)
         {
-            currentPath.Save(name);
+            currentPath.Save(name, failed);
             displayedPath = currentPath;
         }
 

@@ -43,11 +43,32 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         {
             static void Prefix(PotionManager __instance)
             {
-                // Apparently updates like every frame
-                //Debug.Log("[Recipe Map Playback] Potion manager updated");
-                // Should instead only call when PotionManager.usedComponents is updated,
                 DisplayPathManager.ResetCurrentPath();
                 Debug.Log($"[Recipe Map Playback] Resetting current path");
+            }
+        }
+
+        [HarmonyPatch(typeof(IndicatorMapItem))]
+        [HarmonyPatch("OnIndicatorRuined")]
+        class FailedRecipePatch
+        {
+            static void Prefix()
+            {
+                DisplayPathManager.SaveFailedRecipe();
+                Debug.Log($"[Recipe Map Playback] Saving failed recipe");
+            }
+        }
+
+        [HarmonyPatch(typeof(IngredientFromStack))]
+        [HarmonyPatch("Smash")]
+        class SmashPatch
+        {
+            static void Postfix()
+            {
+                //DisplayPathManager.cracked = true;
+                // Not sure how to do this. It's possible to crack an ingredient and then put it on the ground and throw in a different uncracked/ground ingredient,
+                // so just seeing if it has been cracked is really not good enough.
+                Debug.Log($"[Recipe Map Playback] Ingredient cracked");
             }
         }
 
