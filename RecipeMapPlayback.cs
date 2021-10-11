@@ -154,6 +154,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             }
         }
 
+        /*
         [HarmonyPatch(typeof(IngredientFromStack))]
         [HarmonyPatch("Smash")]
         class SmashPatch
@@ -166,6 +167,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                 Debug.Log($"[Recipe Map Playback] Ingredient cracked");
             }
         }
+        */
 
         [HarmonyPatch(typeof(PotionCraftPanel.SaveRecipeButton))]
         [HarmonyPatch("OnButtonReleasedPointerInside")]
@@ -176,7 +178,20 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                 // Apparently updates like every frame
                 //Debug.Log("[Recipe Map Playback] Potion manager updated");
                 // Should instead only call when PotionManager.usedComponents is updated,
-                string name = Managers.Potion.potionCraftPanel.GetCurrentPotion().name; // Kind of a placeholder
+                Potion potion = Managers.Potion.potionCraftPanel.GetCurrentPotion();
+                string name = "";
+                if (potion.isTitleCustom)
+                {
+                    name = potion.customTitle;
+                }
+                else
+                {
+                    name = Managers.Potion.potionCraftPanel.GetCurrentPotion().name; // Placeholder like "Potion of Healing, Healing, Healing"
+                }
+                foreach (char c in System.IO.Path.GetInvalidFileNameChars())
+                {
+                    name = name.Replace(c, '_');
+                }
                 Debug.Log($"[Recipe Map Playback] Saving path...");
                 DisplayPathManager.SavePath(name);
             }

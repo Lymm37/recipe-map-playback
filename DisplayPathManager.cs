@@ -192,6 +192,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             }
         }
 
+        /*
         public static bool Rename(string oldname, string newname)
         {
             try
@@ -215,5 +216,6 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             }
             return false;
         }
+        */
     }
 }
