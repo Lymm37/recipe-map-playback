@@ -48,6 +48,101 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             }
         }
 
+        // Request update if the potion changed position on the map
+        [HarmonyPatch(typeof(IndicatorMapItem))]
+        [HarmonyPatch("CheckPositionChange")]
+        class PositionChangePatch
+        {
+            static void Prefix(IndicatorMapItem __instance)
+            {
+                // Doing this check probably makes the distance checks in DisplayPath redundant
+                if ((__instance.previousPosition - Managers.RecipeMap.recipeMapObject.indicatorContainer.localPosition).magnitude > DisplayPath.thresholdDistance)
+                {
+                    DisplayPathManager.SetIngredientAddedState("Move");
+                    DisplayPathManager.RequestUpdate();
+                }
+            }
+        }
+
+        // Request update if ingredient is added
+        [HarmonyPatch(typeof(ObjectBased.Stack.Stack))]
+        [HarmonyPatch("AddIngredientPathToMapPath")]
+        class AddIngredientPatch
+        {
+            static void Prefix(ObjectBased.Stack.Stack __instance)
+            {
+                if (__instance.Ingredient.name.Equals("FrostSapphire") && __instance.overallGrindStatus >= 0.9923f)
+                {
+                    // Special case for frost sapphire, where full-grind is not overallGrindStatus of 1...
+                    if (System.Math.Abs(__instance.overallGrindStatus - 0.992302f) < 0.001)
+                    {
+                        // Full-grind
+                        DisplayPathManager.SetIngredientAddedState("Full");
+                    }
+                    else
+                    {
+                        // Cheating
+                        DisplayPathManager.SetIngredientAddedState("Cheated");
+                    }
+                }
+                else
+                {
+                    if (__instance.overallGrindStatus == 1f)
+                    {
+                        // Full-grind
+                        DisplayPathManager.SetIngredientAddedState("Full");
+                    }
+                    else if (__instance.overallGrindStatus == 0f)
+                    {
+                        // No-grind
+                        DisplayPathManager.SetIngredientAddedState("None");
+                    }
+                    else
+                    {
+                        // Maybe cracked?
+                        bool isGround = false;
+                        foreach (StackItem stackItem in __instance.itemsFromThisStack)
+                        {
+                            if (stackItem is IngredientFromStack ingredientFromStack1)
+                            {
+                                if (ingredientFromStack1.currentGrindState != 1)
+                                {
+                                    isGround = true;
+                                }
+                            }
+                            else if (stackItem is GrindedSubstanceInPlay)
+                            {
+                                isGround = true;
+                            }
+                        }
+                        if (!isGround)
+                        {
+                            // Cracked
+                            DisplayPathManager.SetIngredientAddedState("Cracked");
+                        }
+                        else
+                        {
+                            // Other grind
+                            DisplayPathManager.SetIngredientAddedState("Other");
+                        }
+                    }
+                }
+                DisplayPathManager.RequestUpdate();
+            }
+        }
+
+        // Request update if salt is added
+        [HarmonyPatch(typeof(Salt))]
+        [HarmonyPatch("OnCauldronDissolve")]
+        class AddSaltPatch
+        {
+            static void Prefix(Salt __instance)
+            {
+                DisplayPathManager.SetIngredientAddedState("Salt");
+                DisplayPathManager.RequestUpdate();
+            }
+        }
+
         [HarmonyPatch(typeof(IndicatorMapItem))]
         [HarmonyPatch("OnIndicatorRuined")]
         class FailedRecipePatch

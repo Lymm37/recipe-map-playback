@@ -24,9 +24,11 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public float teleportStatus;
         public float whirlpoolStatus;
         public float philSaltStatus;
+        public float cumulativeDistance;
+        public string grindState;
         //public string type;
 
-        public ControlPoint(Vector2 p, SerializedRecipeMark mark, float health, float rotation, float teleportStatus, float whirlpoolStatus, float philSaltStatus)
+        public ControlPoint(Vector2 p, SerializedRecipeMark mark, float health, float rotation, float teleportStatus, float whirlpoolStatus, float philSaltStatus, float cumulativeDistance, string grindState)
         {
             this.x = p.x;
             this.y = p.y;
@@ -37,6 +39,12 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             this.teleportStatus = teleportStatus;
             this.whirlpoolStatus = whirlpoolStatus;
             this.philSaltStatus = philSaltStatus;
+            this.cumulativeDistance = cumulativeDistance;
+            this.grindState = grindState;
+            if (type != SerializedRecipeMark.Type.Ingredient && type != SerializedRecipeMark.Type.Salt)
+            {
+                this.grindState = "Move"; // Not an ingredient addition, so don't need to set grind state
+            }
             switch (type)
             {
                 // Start
@@ -153,7 +161,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             mark.type = type;
             mark.floatValue = value;
             mark.stringValue = name;
-            return new ControlPoint(p, mark, health, rotation, teleportStatus, whirlpoolStatus, philSaltStatus);
+            return new ControlPoint(p, mark, health, rotation, teleportStatus, whirlpoolStatus, philSaltStatus, cumulativeDistance, grindState);
         }
     }
 }

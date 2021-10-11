@@ -18,9 +18,13 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public static GameObject textHolder;
         public static bool isInitialized = false;
         public static DisplayPath quicksavePath;
+        public static bool needsUpdate = false;
+        public static string ingredientAddedState;
 
         public static void Initialize()
         {
+            needsUpdate = true;
+            ingredientAddedState = "";
             currentPath = new DisplayPath();
             quicksavePath = null;
             displayedPath = null;
@@ -39,7 +43,6 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             tmpObj.fontSize = 4;
             tmpObj.fontSizeMin = 4;
             tmpObj.fontSizeMax = 4;
-
             tmpObj.color = Color.black;
             GameObject panel = GameObject.Find("PotionCraftPanel");
             if (panel is not null)
@@ -56,6 +59,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public static void ResetCurrentPath()
         {
             currentPath = new DisplayPath();
+            needsUpdate = true;
         }
 
         public static void SaveFailedRecipe()
@@ -66,7 +70,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
 
         public static void UpdateCurrentPath()
         {
-            if (isInitialized && currentPath is not null)
+            if (isInitialized && currentPath is not null && needsUpdate)
             {
                 Vector3 pos = Managers.RecipeMap.recipeMapObject.indicatorContainer.localPosition;
                 Vector2 point = new Vector2(pos.x, pos.y);
@@ -96,7 +100,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
 
                 float saltMovement = Managers.RecipeMap.moveToNearestEffectBySalt;
 
-                currentPath.TryToAdd(point, mark, numMarks, health, rotation, teleportStatus, whirlpoolStatus, saltMovement);
+                currentPath.TryToAdd(point, mark, numMarks, health, rotation, teleportStatus, whirlpoolStatus, saltMovement, ingredientAddedState);
                 PotionEffect[] potionEffects = Managers.Potion.collectedPotionEffects;
                 if (potionEffects is not null)
                 {
@@ -126,7 +130,21 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                 //priceText.rectTransform.rect = new Rect(new Vector2(0f, 0f), new Vector2(100f, 100f));
                 tmpObj.text = currentPath.GetPrice().ToString() + " / " + currentPath.GetStress().ToString() + " / " + health;
 
+                // TODO: Need to set needsUpdate to true only when necessary
+                //needsUpdate = false;
             }
+        }
+
+        // This needs to be called when something happens that could update the path:
+        // Adding an ingredient, adding salt, updating the position of the potion indicator (captures stirring, heating, teleporting, philosopher's salt, water...)
+        public static void RequestUpdate()
+        {
+            needsUpdate = true;
+        }
+
+        public static void SetIngredientAddedState(string state)
+        {
+            ingredientAddedState = state;
         }
 
         public static void SetInDisplayMode(bool b)
