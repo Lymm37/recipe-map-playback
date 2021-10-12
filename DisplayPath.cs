@@ -300,14 +300,24 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                     var groups = translatedEffects.GroupBy(s => s).Select(s => new { Effect = s.Key, Count = s.Count() });
                     Dictionary<string, int> effectCounts = groups.ToDictionary(g => g.Effect, g => g.Count);
                     string effectsString = "";
+                    List<string> effectKeys = effectCounts.Keys.ToList();
+                    for (int i = 0; i < effectKeys.Count; i++)
+                    {
+                        effectsString += effectKeys[i] + " " + effectCounts[effectKeys[i]];
+                        if (i < effectKeys.Count - 1)
+                        {
+                            effectsString += ",";
+                        }
+                    }
+                    string sortedEffectsString = "";
                     // Alphabetical for consistency?
                     List<string> sortedKeys = effectCounts.Keys.OrderBy(q => q).ToList();
                     for (int i = 0; i < sortedKeys.Count; i++)
                     {
-                        effectsString += sortedKeys[i] + " " + effectCounts[sortedKeys[i]];
+                        sortedEffectsString += sortedKeys[i] + " " + effectCounts[sortedKeys[i]];
                         if (i < sortedKeys.Count-1)
                         {
-                            effectsString += ",";
+                            sortedEffectsString += ",";
                         }
                     }
                     /*
@@ -555,39 +565,53 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                     // Effect level / number of effects
                     if (effectsString.Length > 0)
                     {
+                        int totalLevel = effects.Count;
+                        challengeTags += "total level " + totalLevel + ",";
                         int effectLevel = effectCounts.Values.Max();
-                        challengeTags += "level " + effectLevel + ",";
+                        challengeTags += "max level " + effectLevel + ",";
                         int numEffects = effectCounts.Count;
                         challengeTags += numEffects + " effect,";
 
                         // Other challenge tags for alchemy machine recipes
-                        if (nigredoPotions.Contains(effectsString))
+                        if (nigredoPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "nigredo,";
                         }
-                        if (albedoPotions.Contains(effectsString))
+                        if (albedoPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "albedo,";
                         }
-                        if (citrinitasPotions.Contains(effectsString))
+                        if (citrinitasPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "citrinitas,";
                         }
-                        if (rubedoPotions.Contains(effectsString))
+                        if (rubedoPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "rubedo,";
                         }
-                        if (philoStonePotions.Contains(effectsString))
+                        if (philoStonePotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "philosopher's stone,";
                         }
-                        if (voidSaltPotions.Contains(effectsString))
+                        if (voidSaltPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "void salt,";
                         }
-                        if (lifeSaltPotions.Contains(effectsString))
+                        if (moonSaltPotions.Contains(sortedEffectsString))
+                        {
+                            challengeTags += "moon salt,";
+                        }
+                        if (sunSaltPotions.Contains(sortedEffectsString))
+                        {
+                            challengeTags += "sun salt,";
+                        }
+                        if (lifeSaltPotions.Contains(sortedEffectsString))
                         {
                             challengeTags += "life salt,";
+                        }
+                        if (philoSaltPotions.Contains(sortedEffectsString))
+                        {
+                            challengeTags += "philosopher's salt,";
                         }
                     }
                     
