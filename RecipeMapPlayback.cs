@@ -17,8 +17,9 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
 
         void Awake()
         {
-            Debug.Log("[Recipe Map Playback] Patching...");
+            Debug.Log("[Recipe Map Playback] Initializing...");
             DisplayPathManager.Initialize();
+            Debug.Log("[Recipe Map Playback] Patching...");
             harmony.PatchAll();
             Debug.Log("[Recipe Map Playback] Patching complete.");
         }
@@ -200,12 +201,12 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         // Quicksave and quickload patches
 
         [HarmonyPatch(typeof(SaveLoadManager))]
-        [HarmonyPatch("SaveToSlot")]
+        [HarmonyPatch("SaveProgressToPool")]
         class QuicksavePatch
         {
-            static void Postfix(ref SaveLoadSystem.SaveSlotIndex slot)
+            static void Postfix(ref SaveFileSystem.SavePool pool)
             {
-                if (slot == SaveLoadSystem.SaveSlotIndex.Quicksave)
+                if (pool == SaveFileSystem.SavePool.QuickSave)
                 {
                     Debug.Log($"[Recipe Map Playback] Quicksaving...");
                     DisplayPathManager.Quicksave();
@@ -214,12 +215,12 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         }
 
         [HarmonyPatch(typeof(SaveLoadManager))]
-        [HarmonyPatch("LoadFromSlot")]
+        [HarmonyPatch("LoadLastProgressFromPool")]
         class QuickloadPatch
         {
-            static void Postfix(ref SaveLoadSystem.SaveSlotIndex slot)
+            static void Postfix(ref SaveFileSystem.SavePool pool)
             {
-                if (slot == SaveLoadSystem.SaveSlotIndex.Quicksave)
+                if (pool == SaveFileSystem.SavePool.QuickSave)
                 {
                     Debug.Log($"[Recipe Map Playback] Quickloading...");
                     DisplayPathManager.Quickload();

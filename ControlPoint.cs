@@ -16,7 +16,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public float x;
         public float y;
         public SerializedRecipeMark.Type type;
-        public int typeCode; // Bitwise - stir, ladle, heat (for effect), whirlpool, teleport, philosopher's salt, 
+        public int typeCode; // Bitwise - stir (1), ladle (2), heat for effect (4), whirlpool (8), teleport (16), philosopher's salt movement (32), salt addition (64), ingredient addition (128)
         public string name;
         public float value;
         public float health;

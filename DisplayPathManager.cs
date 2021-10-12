@@ -44,6 +44,8 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             tmpObj.fontSizeMin = 4;
             tmpObj.fontSizeMax = 4;
             tmpObj.color = Color.black;
+            // Panel will be null at this point, just adding it later anyway
+            /*
             GameObject panel = GameObject.Find("PotionCraftPanel");
             if (panel is not null)
             {
@@ -53,6 +55,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
             {
                 Debug.Log("[Recipe Map Playback] You really messed up with the positioning here...");
             }
+            */
             isInitialized = true;
         }
 

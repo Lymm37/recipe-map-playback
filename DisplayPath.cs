@@ -14,6 +14,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
     class DisplayPath
     {
         // Lazy by doing more work: I couldn't find an easy way to get the localization strings for English specifically, because I'd have to figure out how to change the locale and back... Downside is I'll have to add to this when new ingredients are added.
+        // These have defaults in case people make custom ingredients or effects, though the categories for ingredients would get messed up
         static Dictionary<string, string> ingredientTranslation = new Dictionary<string, string> { { "Leaf", "Terraria" }, { "Waterbloom", "Waterbloom" }, { "GoblinMushroom", "Goblin Shroom" }, { "Firebell", "Firebell" }, {"DryadMushroom", "Dryad's Saddle" }, { "Windbloom", "Windbloom"}, { "CliffFungus", "Brown Mushroom"}, { "Marshrooms", "Marshroom"}, {"Thornstick", "Thornstick" }, { "Wierdshroom", "Weirdshroom"}, {"Tangleweeds","Tangleweed" }, { "Thistle", "Thunder Thistle"}, { "LumpyBeet", "Lumpy Beet"}, {"IceDragonfruit", "Ice Fruit" }, {"GreenMushroom", "Green Mushroom" }, {"RedMushroom", "Red Mushroom" }, { "GreyChanterelle", "Shadow Chanterelle"}, { "GraveTruffle", "Grave Truffle"}, {"SulphurShelf", "Sulphur Shelf" }, {"LavaRoot", "Lava Root" }, {"Refruit", "Hairy Banana" }, {"Goldthorn", "Goldthorn" }, {"WitchMushroom", "Witch Mushroom" }, { "BloodyRoot", "Bloodthorn"}, {"EarthCrystal", "Earth Pyrite" }, {"FrostSapphire", "Frost Sapphire" }, { "FireCitrine", "Fire Citrine"}, {"Crystal", "Cloud Crystal" }, {"BloodRuby", "Blood Ruby" }, {"Void Salt", "Void Salt"}, {"Moon Salt", "Moon Salt" }, { "Sun Salt", "Sun Salt" }, { "Life Salt","Life Salt" }, {"Philosopher's Salt", "Philosopher's Salt" } };
         static Dictionary<string, string> effectTranslation = new Dictionary<string, string> { {"Crop","Rich Harvest"},{ "Invisibility", "Invisibility" },{ "StoneSkin", "Stone Skin" },{ "Growth", "Fast Growth" }, { "SlowDown", "Slow Down" }, { "Sleep", "Sleep" }, { "SharpVision", "Magical Vision" }, { "Mana", "Mana" }, { "Lightning", "Lightning" }, { "Hallucinations", "Hallucinations" }, { "Fly", "Levitation" }, { "Explosion", "Explosion" }, { "Charm", "Charm" }, { "Berserker", "Berserker" }, { "Light", "Light" }, { "Libido", "Libido" }, { "Bounce", "Bounce" }, { "Acid", "Acid" }, { "Fire", "Fire" }, { "Necromancy", "Necromancy" },{ "Frost", "Frost" }, { "Poison", "Poisoning" }, { "Healing", "Healing" } };
         // Alchemy machine recipes
@@ -44,7 +45,10 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
         public float lastSaltMovement;
         
         private List<ControlPoint> points;
-        public static float thresholdDistance = 0.02f; // Could be adjusted... Balance between file size and precision.
+        public static float thresholdDistance = 0.05f; // Could be adjusted... Balance between file size and precision.
+        public static int decimalPrecision = 2; // Save on some more space
+        // Reduced space usage for 4-ingredient hallu 3 from ~140 kB to 21 kB. Can't really get it much smaller without using Bezier curve stuff. Max size of whole database is maybe 3 GB...
+        // I calculated 97,728 unique potion effect combinations (including empty), and that would make this database on the scale of terabytes with all challenges. But not all potions are useful, so I'm sure not all would be uploaded anyway.
         public List<Potion.UsedComponent> usedComponents;
         public float stress;
         public float totalCost;
@@ -262,7 +266,15 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                             }
                             else
                             {
-                                ingredientsString += c.amount+" "+ ingredientTranslation[((InventoryItem)c.componentObject).name];
+                                string defaultName = ((InventoryItem)c.componentObject).name;
+                                if (ingredientTranslation.ContainsKey(defaultName)) { 
+                                    ingredientsString += c.amount + " " + ingredientTranslation[defaultName];
+                                }
+                                else
+                                {
+                                    // Fallback for custom ingredients
+                                    ingredientsString += c.amount + " " + defaultName;
+                                }
                                 if (i < usedComponents.Count-1)
                                 {
                                     ingredientsString += ",";
@@ -272,7 +284,20 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                     }
 
                     // Effects (translated)
-                    var groups = effects.GroupBy(s => s).Select(s => new { Effect = effectTranslation[s.Key], Count = s.Count() });
+                    List<string> translatedEffects = new List<string>();
+                    for (int i = 0; i < effects.Count; i++)
+                    {
+                        if (effectTranslation.ContainsKey(effects[i]))
+                        {
+                            translatedEffects.Add(effectTranslation[effects[i]]);
+                        }
+                        else
+                        {
+                            // Fallback for custom effects
+                            translatedEffects.Add(effects[i]);
+                        }
+                    }
+                    var groups = translatedEffects.GroupBy(s => s).Select(s => new { Effect = s.Key, Count = s.Count() });
                     Dictionary<string, int> effectCounts = groups.ToDictionary(g => g.Effect, g => g.Count);
                     string effectsString = "";
                     // Alphabetical for consistency?
@@ -577,7 +602,9 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                     }
 
                     float totalPathDistance = points[points.Count - 1].cumulativeDistance;
-                    
+                    float lastRotation = points[points.Count - 1].rotation;
+
+
                     if (asCSV)
                     {
                         // As CSV
@@ -586,22 +613,43 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                             StreamWriter writer = new StreamWriter("recipe_path_" + name + ".csv");
                             // Going to have to include one additional header line for metadata... So it's not *really* a CSV, but still.
                             writer.WriteLine("Metadata_start");
-                            writer.WriteLine(totalCost + "," + noSaltCost + "," + ingredientCount + "," + stress + "," + totalPathDistance);
+                            writer.WriteLine(totalCost + "," + noSaltCost + "," + ingredientCount + "," + stress + "," + totalPathDistance + "," + lastRotation);
                             writer.WriteLine(effectsString);
                             writer.WriteLine(ingredientsString);
                             writer.WriteLine(saltsString);
                             writer.WriteLine(challengeTags);
                             writer.WriteLine("Metadata_end");
-                            writer.WriteLine("step,name,x,y,typeCode,grindState,value,health,rotation,teleport,whirlpool,philSalt,distance");
+                            // Full version
+                            //writer.WriteLine("step,name,x,y,typeCode,grindState,value,health,rotation,teleport,whirlpool,philSalt,distance");
+                            // Reduced (step is easy to recover from line number, typeCode covers teleport, whirlpool>0, philSalt, throwing out distance and rotation and just using the total)
+                            writer.WriteLine("typeCode,name,x,y,health");
                             for (int i = 0; i < points.Count; i++)
                             {
                                 ControlPoint p = points[i];
                                 string pointName = p.name;
                                 if (p.typeCode == 128) // Not necessary for the salts, since they are already named correctly
                                 {
-                                    pointName = ingredientTranslation[p.name];
+                                    if (ingredientTranslation.ContainsKey(p.name))
+                                    {
+                                        pointName = ingredientTranslation[p.name] + "_" + p.grindState; // Merge ingredient name and grind state to save space...
+                                    }
+                                    else
+                                    {
+                                        // Fallback for custom ingredients
+                                        pointName = p.name + "_" + p.grindState; // Merge ingredient name and grind state to save space...
+                                    }
                                 }
-                                writer.WriteLine(i + "," + pointName + "," + p.x + "," + p.y + "," + p.typeCode + "," + p.grindState + "," + p.value + "," + p.health + "," + p.rotation + "," + p.teleportStatus + "," + p.whirlpoolStatus + "," + p.philSaltStatus + "," + p.cumulativeDistance);
+                                else if (p.typeCode == 64 || p.typeCode == 0) // Salt and base
+                                {
+                                    pointName = p.name;
+                                }
+                                else 
+                                {
+                                    pointName = ""; // Save space, already covered in the typeCode, no need to write out things like "Stir" over and over
+                                }
+                                // Full version
+                                //writer.WriteLine(i + "," + pointName + "," + Math.Round(p.x, decimalPrecision) + "," + Math.Round(p.y, decimalPrecision) + "," + p.typeCode + "," + p.grindState + "," + Math.Round(p.value, decimalPrecision) + "," + Math.Round(p.health, decimalPrecision) + "," + Math.Round(p.rotation, decimalPrecision) + "," + p.teleportStatus + "," + p.whirlpoolStatus + "," + p.philSaltStatus + "," + Math.Round(p.cumulativeDistance, decimalPrecision));
+                                writer.WriteLine(p.typeCode + "," + pointName + "," + Math.Round(p.x, decimalPrecision) + "," + Math.Round(p.y, decimalPrecision) + "," + Math.Round(p.health, decimalPrecision));
                             }
                             writer.Close();
                         }
