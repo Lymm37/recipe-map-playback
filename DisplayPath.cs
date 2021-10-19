@@ -249,6 +249,7 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                     // Calculate metadata
                     CalculatePrice();
                     CalculateStress();
+                    List<int> salts = new List<int> { 0, 0, 0, 0, 0 };
                     string ingredientsString = "";
                     string saltsString = "";
                     for (int i = 0; i < usedComponents.Count; i++)
@@ -256,14 +257,28 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                         Potion.UsedComponent c = usedComponents[i];
                         if (c.componentType == Potion.UsedComponent.ComponentType.InventoryItem)
                         {
-                            if (((InventoryItem)c.componentObject).name.Contains("Salt"))
-                            {
-                                saltsString += c.amount + " " + ((InventoryItem)c.componentObject).name;
-                                if (i < usedComponents.Count - 1)
-                                {
-                                    saltsString += ",";
-                                }
+                            //saltsString += c.amount + " " + ((InventoryItem)c.componentObject).name;
+                            if (((InventoryItem)c.componentObject).name.Equals("Void Salt")) {
+                                salts[0] = c.amount;
                             }
+                            else if (((InventoryItem)c.componentObject).name.Equals("Moon Salt")) {
+                                salts[1] = c.amount;
+                            }
+                            else if (((InventoryItem)c.componentObject).name.Equals("Sun Salt")) {
+                                salts[2] = c.amount;
+                            }
+                            else if (((InventoryItem)c.componentObject).name.Equals("Life Salt")) {
+                                salts[3] = c.amount;
+                            }
+                            else if (((InventoryItem)c.componentObject).name.Equals("Philosopher's Salt")) {
+                                salts[4] = c.amount;
+                            }
+                            /*
+                            if (i < usedComponents.Count - 1)
+                            {
+                                saltsString += ",";
+                            }
+                            */
                             else
                             {
                                 string defaultName = ((InventoryItem)c.componentObject).name;
@@ -280,6 +295,15 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                                     ingredientsString += ",";
                                 }
                             }
+                        }
+                    }
+
+                    for (int i = 0; i < salts.Count; i++)
+                    {
+                        saltsString += salts[i];
+                        if (i < salts.Count - 1)
+                        {
+                            saltsString += ",";
                         }
                     }
 
@@ -635,14 +659,14 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                         try
                         {  
                             StreamWriter writer = new StreamWriter("recipe_path_" + name + ".csv");
-                            // Going to have to include one additional header line for metadata... So it's not *really* a CSV, but still.
-                            writer.WriteLine("Metadata_start");
+                            // Going to have to include additional header lines for metadata... So it's not *really* a CSV, but still.
+                            //writer.WriteLine("Metadata_start");
                             writer.WriteLine(totalCost + "," + noSaltCost + "," + ingredientCount + "," + stress + "," + totalPathDistance + "," + lastRotation);
                             writer.WriteLine(effectsString);
                             writer.WriteLine(ingredientsString);
                             writer.WriteLine(saltsString);
                             writer.WriteLine(challengeTags);
-                            writer.WriteLine("Metadata_end");
+                            //writer.WriteLine("Metadata_end");
                             // Full version
                             //writer.WriteLine("step,name,x,y,typeCode,grindState,value,health,rotation,teleport,whirlpool,philSalt,distance");
                             // Reduced (step is easy to recover from line number, typeCode covers teleport, whirlpool>0, philSalt, throwing out distance and rotation and just using the total)
@@ -660,7 +684,17 @@ namespace Lymm37.PotionCraft.RecipeMapPlayback
                                     else
                                     {
                                         // Fallback for custom ingredients
-                                        pointName = p.name + "_" + p.grindState; // Merge ingredient name and grind state to save space...
+                                        // Merge ingredient name and grind state to save space...
+                                        if (p.grindState.Equals("Other"))
+                                        {
+                                            // Other grind value needs to be listed
+                                            pointName = p.name + "_" + p.value;
+                                        }
+                                        else
+                                        {
+                                            // Full, None, Cracked
+                                            pointName = p.name + "_" + p.grindState;
+                                        }
                                     }
                                 }
                                 else if (p.typeCode == 64 || p.typeCode == 0) // Salt and base
